@@ -1,0 +1,55 @@
+!pip install mlxtend --upgrade
+
+import pandas as pd
+from mlxtend.frequent_patterns import apriori, association_rules
+
+def load_transactional_data(file_path):
+    with open(file_path, 'r') as file:
+        return [line.strip().split(',') for line in file]
+
+file_path = "data3.csv"  
+
+transactions = load_transactional_data(file_path)
+
+
+def convert_to_binary_df(transactions):
+    # Obter todos os itens únicos
+    unique_items = sorted(set(item for transaction in transactions for item in transaction))
+    # Criar DataFrame binário com valores booleanos
+    binary_df = pd.DataFrame(False, index=range(len(transactions)), columns=unique_items)
+    for i, transaction in enumerate(transactions):
+        binary_df.loc[i, transaction] = True
+    return binary_df
+
+binary_df = convert_to_binary_df(transactions)
+
+
+def apply_apriori(binary_df, min_support, min_confidence):
+    # Gerar conjuntos frequentes
+    frequent_itemsets = apriori(binary_df, min_support=min_support, use_colnames=True)
+    # Garantir que não há erro ao usar 'association_rules'
+    try:
+        rules = association_rules(frequent_itemsets, metric="confidence", min_threshold=min_confidence)
+    except TypeError as e:
+        print("Erro ao gerar regras:", e)
+        print("Verifique a versão do mlxtend instalada.")
+        return frequent_itemsets, pd.DataFrame()  # Retorna vazio se erro persistir
+    return frequent_itemsets, rules
+
+
+print("### Cenário 1: Suporte = 50%, Confiança = 50% ###")
+frequent_itemsets_1, rules_1 = apply_apriori(binary_df, min_support=0.5, min_confidence=0.5)
+print("Conjuntos frequentes:\n", frequent_itemsets_1)
+print("\nRegras:\n", rules_1)
+
+print("\n\n### Cenário 2: Suporte = 50%, Confiança = 75% ###")
+frequent_itemsets_2, rules_2 = apply_apriori(binary_df, min_support=0.5, min_confidence=0.75)
+print("Conjuntos frequentes:\n", frequent_itemsets_2)
+print("\nRegras:\n", rules_2)
+
+
+print("\n\n### Conclusões ###")
+print(f"Total de conjuntos frequentes no Cenário 1: {len(frequent_itemsets_1)}")
+print(f"Total de regras no Cenário 1: {len(rules_1)}")
+print(f"Total de conjuntos frequentes no Cenário 2: {len(frequent_itemsets_2)}")
+print(f"Total de regras no Cenário 2: {len(rules_2)}")
